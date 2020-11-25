@@ -52,7 +52,7 @@ def train_12ECG_classifier(input_directory, output_directory, n_jobs=4):
     features=imputer.transform(features)
 
     # Train the classifier
-    model = RandomForestClassifier().fit(features,labels)
+    model = RandomForestClassifier(max_depth=15).fit(features,labels)
 
     # Save model.
     print('Saving model...')
