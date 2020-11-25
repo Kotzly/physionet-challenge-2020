@@ -6,8 +6,9 @@ from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
 from get_12ECG_features import get_12ECG_features
 import tqdm
+import multiprocessing as mp
 
-def train_12ECG_classifier(input_directory, output_directory):
+def train_12ECG_classifier(input_directory, output_directory, n_jobs=4):
     # Load data.
     header_files = []
     print('Listing files...')
@@ -19,24 +20,14 @@ def train_12ECG_classifier(input_directory, output_directory):
     classes = get_classes(input_directory, header_files)
     num_classes = len(classes)
     num_files = len(header_files)
-    recordings = list()
-    headers = list()
-
-    print('Loading data...')
-    for i in tqdm.tqdm(range(num_files)):
-        recording, header = load_challenge_data(header_files[i])
-        recordings.append(recording)
-        headers.append(header)
-
-    # Train model.
-    print('Training model...')
 
     features = list()
     labels = list()
-
-    for i in range(num_files):
-        recording = recordings[i]
-        header = headers[i]
+    
+    print("Loading data...")
+    
+    for i in tqdm.tqdm(range(num_files)):
+        recording, header = load_challenge_data(header_files[i])
 
         tmp = get_12ECG_features(recording, header)
         features.append(tmp)
@@ -52,6 +43,9 @@ def train_12ECG_classifier(input_directory, output_directory):
 
     features = np.array(features)
     labels = np.array(labels)
+
+    # Train model.
+    print('Training model...')
 
     # Replace NaN values with mean values
     imputer=SimpleImputer().fit(features)
