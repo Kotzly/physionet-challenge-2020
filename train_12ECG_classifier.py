@@ -61,6 +61,9 @@ def train_12ECG_classifier(input_directory, output_directory, n_jobs=4):
     filename = os.path.join(output_directory, 'finalized_model.sav')
     joblib.dump(final_model, filename, protocol=0)
     
+    model_filename = os.path.join(output_directory, 'model.sav')
+    joblib.dump({'model': model}, model_filename, protocol=0)
+    
     imputer_filename = os.path.join(output_directory, 'imputer.sav')
     joblib.dump({'imputer': imputer}, imputer_filename, protocol=0)
 
