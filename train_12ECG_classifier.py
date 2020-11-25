@@ -80,7 +80,8 @@ def load_challenge_data(header_file):
 # Find unique classes.
 def get_classes(input_directory, filenames):
     classes = set()
-    for filename in filenames:
+    print("Loading classes...")
+    for filename in tqdm.tqdm(filenames):
         with open(filename, 'r') as f:
             for l in f:
                 if l.startswith('#Dx'):
