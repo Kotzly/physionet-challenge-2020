@@ -5,13 +5,13 @@ from scipy.io import loadmat
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
 from get_12ECG_features import get_12ECG_features
+import tqdm
 
 def train_12ECG_classifier(input_directory, output_directory):
     # Load data.
-    print('Loading data...')
-
     header_files = []
-    for f in os.listdir(input_directory):
+    print('Listing files...')
+    for f in tqdm.tqdm(os.listdir(input_directory)):
         g = os.path.join(input_directory, f)
         if not f.lower().startswith('.') and f.lower().endswith('hea') and os.path.isfile(g):
             header_files.append(g)
@@ -22,7 +22,8 @@ def train_12ECG_classifier(input_directory, output_directory):
     recordings = list()
     headers = list()
 
-    for i in range(num_files):
+    print('Loading data...')
+    for i in tqdm.tqdm(range(num_files)):
         recording, header = load_challenge_data(header_files[i])
         recordings.append(recording)
         headers.append(header)
