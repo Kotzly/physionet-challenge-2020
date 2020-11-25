@@ -57,10 +57,16 @@ def train_12ECG_classifier(input_directory, output_directory, n_jobs=4):
     # Save model.
     print('Saving model...')
 
-    final_model={'model':model, 'imputer':imputer,'classes':classes}
-
+    final_model={'model': model, 'imputer': imputer,'classes': classes}
     filename = os.path.join(output_directory, 'finalized_model.sav')
     joblib.dump(final_model, filename, protocol=0)
+    
+    imputer_filename = os.path.join(output_directory, 'imputer.sav')
+    joblib.dump({'imputer': imputer}, imputer_filename, protocol=0)
+
+    classes_filename = os.path.join(output_directory, 'classes.sav')
+    joblib.dump({'classes': classes}, classes_filename, protocol=0)
+    
 
 # Load challenge data.
 def load_challenge_data(header_file):
