@@ -207,7 +207,7 @@ def load_outputs(output_files, classes, equivalent_classes):
     tmp_labels = list()
     tmp_binary_outputs = list()
     tmp_scalar_outputs = list()]
-    print("Step 3 - loading outputs".)
+    print("Step 3 - loading outputs")
     for i in tqdm.tqdm(range(num_recordings)):
         with open(output_files[i], 'r') as f:
             lines = [l for l in f if l.strip() and not l.strip().startswith('#')]
