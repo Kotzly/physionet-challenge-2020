@@ -207,7 +207,7 @@ def clean_line(line):
 
 # Load outputs from output files.
 
-def load_output(i, filepath):
+def load_output(filepath):
     with open(filepath, 'r') as f:
         lines = [l for l in f if l.strip() and not l.strip().startswith('#')]
     lengths = [len(l.split(',')) for l in lines]
@@ -244,7 +244,7 @@ def load_outputs(output_files, classes):
     tmp_scalar_outputs = list()
     print("Step 3 - loading outputs")
     with mp.Pool(N_JOBS) as pool:
-        results = pool.starmap(load_output, enumerate(output_files))
+        results = pool.map(load_output, output_files)
     tmp_labels, tmp_binary_outputs, tmp_scalar_outputs = list(zip(*results))
     # for i in tqdm.tqdm(range(num_recordings)):
     #     with open(output_files[i], 'r') as f:
