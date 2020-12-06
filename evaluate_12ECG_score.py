@@ -207,24 +207,36 @@ def clean_line(line):
 
 # Load outputs from output files.
 
-def load_output(filepath):
+def load_output(filepath, classes):
     with open(filepath, 'r') as f:
         lines = [l for l in f if l.strip() and not l.strip().startswith('#')]
     lengths = [len(l.split(',')) for l in lines]
     if len(lines)>=3 and len(set(lengths))==1:
 
-        labels = replace_equivalent_classes(
+        labels =  np.array(
+            replace_equivalent_classes(
                 clean_line(lines[0])
             )
-        binary_outputs = [1 if arr in ('1', 'True', 'true', 'T', 't') else 0 for arr in clean_line(lines[1])]
+        )
+        binary_outputs_ = np.array([1 if arr in ('1', 'True', 'true', 'T', 't') else 0 for arr in clean_line(lines[1])])
         
-        scalar_outputs = [float(arr) if is_number(arr) else 0 for arr in clean_line(lines[2])]
+        scalar_outputs_ = np.array([float(arr) if is_number(arr) else 0 for arr in clean_line(lines[2])])
 
     else:
         print('- The output file {} has formatting errors, so all outputs are assumed to be negative for this recording.'.format(output_files[i]))
-        labels = list()
-        binary_outputs = list()
-        scalar_outputs = list()
+        labels = np.array([])
+        binary_outputs = np.array([])
+        scalar_outputs = np.array([])
+    num_classes = len(classes)
+
+    binary_outputs = np.zeros(num_classes, dtype=np.bool)
+    scalar_outputs = np.zeros(num_classes, dtype=np.float64)
+
+    for c_i, c in enumerate(classes):
+        indices = np.where(labels == c)[0]
+        if len(indices) > 0:
+            binary_outputs[c_i] =  np.any(binary_outputs_[indices])
+            scalar_outputs[c_i] =  np.nanmean(scalar_outputs_[indices])
 
     return labels, binary_outputs, scalar_outputs
 
@@ -235,76 +247,20 @@ def load_outputs(output_files, classes):
     #           0,           1,           1
     #        0.12,        0.34,        0.56
     #
-    num_recordings = len(output_files)
-    num_classes = len(classes)
 
     # Load the outputs. Perform basic error checking for the output format.
-    tmp_labels = list()
-    tmp_binary_outputs = list()
-    tmp_scalar_outputs = list()
     print("Step 3 - loading outputs")
+    
     with mp.Pool(N_JOBS) as pool:
-        results = pool.map(load_output, output_files)
-    tmp_labels, tmp_binary_outputs, tmp_scalar_outputs = list(zip(*results))
-    # for i in tqdm.tqdm(range(num_recordings)):
-    #     with open(output_files[i], 'r') as f:
-    #         lines = [l for l in f if l.strip() and not l.strip().startswith('#')]
-    #     lengths = [len(l.split(',')) for l in lines]
-    #     if len(lines)>=3 and len(set(lengths))==1:
+        args = [(output_file, classes) for output_file in output_files]
+        results = pool.starmap(load_output, args)
 
-    #         tmp_labels.append(
-    #             replace_equivalent_classes(
-    #                 clean_line(lines[0])
-    #             )
-    #         )
-    #         tmp_binary_outputs.append(
-    #             [1 if arr in ('1', 'True', 'true', 'T', 't') else 0 for arr in clean_line(lines[1])]
-    #         )
-    #         tmp_scalar_outputs.append(
-    #             [float(arr) if is_number(arr) else 0 for arr in clean_line(lines[2])]
-    #         )
-                
-    #         # for j, l in enumerate(lines):
-    #         #     arrs = [arr.strip() for arr in l.split(',')]
-    #         #     if j==0:
-    #         #         row = arrs
-    #         #         row = replace_equivalent_classes(row)
-    #         #         tmp_labels.append(row)
-    #         #     elif j==1:
-    #         #         row = list()
-    #         #         for arr in arrs:
-    #         #             number = 1 if arr in ('1', 'True', 'true', 'T', 't') else 0
-    #         #             row.append(number)
-    #         #         tmp_binary_outputs.append(row)
-    #         #     elif j==2:
-    #         #         row = list()
-    #         #         for arr in arrs:
-    #         #             number = float(arr) if is_number(arr) else 0
-    #         #             row.append(number)
-    #         #         tmp_scalar_outputs.append(row)
-    #     else:
-    #         print('- The output file {} has formatting errors, so all outputs are assumed to be negative for this recording.'.format(output_files[i]))
-    #         tmp_labels.append(list())
-    #         tmp_binary_outputs.append(list())
-    #         tmp_scalar_outputs.append(list())
-
-    # Use one-hot encoding for binary outputs and the same order for scalar outputs.
-    # If equivalent classes have different binary outputs, then the representative class is positive if any equivalent class is positive.
-    # If equivalent classes have different scalar outputs, then the representative class is the mean of the equivalent classes.
-    print("Hot encoding labels")
-    binary_outputs = np.zeros((num_recordings, num_classes), dtype=np.bool)
-    scalar_outputs = np.zeros((num_recordings, num_classes), dtype=np.float64)
-    for i in tqdm.tqdm(range(num_recordings)):
-        dxs = tmp_labels[i]
-        for j, x in enumerate(classes):
-            indices = [k for k, y in enumerate(dxs) if x==y]
-            if indices:
-                binary_outputs[i, j] = np.any([tmp_binary_outputs[i][k] for k in indices])
-                scalar_outputs[i, j] = np.nanmean([tmp_scalar_outputs[i][k] for k in indices])
-
+    _, tmp_binary_outputs, tmp_scalar_outputs = list(zip(*results))
+    binary_outputs = np.array(tmp_binary_outputs)
+    scalar_outputs = np.array(tmp_scalar_outputs)
     # If any of the outputs is a NaN, then replace it with a zero.
-    binary_outputs[np.isnan(binary_outputs)] = 0
-    scalar_outputs[np.isnan(scalar_outputs)] = 0
+    binary_outputs = np.nan_to_num(binary_outputs)
+    scalar_outputs = np.nan_to_num(scalar_outputs)
 
     return binary_outputs, scalar_outputs
 
