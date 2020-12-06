@@ -51,7 +51,6 @@ if __name__ == '__main__':
     for f in os.listdir(input_directory):
         if os.path.isfile(os.path.join(input_directory, f)) and not f.lower().startswith('.') and f.lower().endswith('mat'):
             input_files.append(f)
-
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
 
