@@ -70,7 +70,7 @@ def is_number(x):
 def find_challenge_files(label_directory, output_directory):
     label_files = list()
     output_files = list()
-    for f in sorted(os.listdir(label_directory)):
+    for f in tqdm.tqdm(sorted(os.listdir(label_directory))):
         F = os.path.join(label_directory, f) # Full path for label file
         if os.path.isfile(F) and F.lower().endswith('.hea') and not f.lower().startswith('.'):
             root, ext = os.path.splitext(f)
