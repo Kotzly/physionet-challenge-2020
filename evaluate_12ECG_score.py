@@ -70,6 +70,7 @@ def is_number(x):
 def find_challenge_files(label_directory, output_directory):
     label_files = list()
     output_files = list()
+    print("Step 1 - finding files.")
     for f in tqdm.tqdm(sorted(os.listdir(label_directory))):
         F = os.path.join(label_directory, f) # Full path for label file
         if os.path.isfile(F) and F.lower().endswith('.hea') and not f.lower().startswith('.'):
@@ -172,7 +173,8 @@ def load_labels(label_files, classes, equivalent_classes):
 
     # Load diagnoses.
     tmp_labels = list()
-    for i in range(num_recordings):
+    print("Step 2 - load labels") 
+    for i in tqdm.tqdm(range(num_recordings)):
         with open(label_files[i], 'r') as f:
             for l in f:
                 if l.startswith('#Dx'):
@@ -204,7 +206,8 @@ def load_outputs(output_files, classes, equivalent_classes):
     # Load the outputs. Perform basic error checking for the output format.
     tmp_labels = list()
     tmp_binary_outputs = list()
-    tmp_scalar_outputs = list()
+    tmp_scalar_outputs = list()]
+    print("Step 3 - loading outputs".)
     for i in tqdm.tqdm(range(num_recordings)):
         with open(output_files[i], 'r') as f:
             lines = [l for l in f if l.strip() and not l.strip().startswith('#')]
