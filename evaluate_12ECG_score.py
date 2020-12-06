@@ -17,23 +17,33 @@
 # different misclassification errors.
 
 import numpy as np, os, os.path, sys
+import multiprocessing as mp
 import tqdm
+
+N_JOBS = os.cpu_count()
+
+EQUIVALENT_CLASSES = [['713427006', '59118001'], ['284470004', '63593006'], ['427172004', '17338001']]
+
+# EQUIVALENT_CLASSES = {
+#     '713427006': '59118001',
+#     '284470004': '63593006',
+#     '427172004': '17338001'
+# }
 
 def evaluate_12ECG_score(label_directory, output_directory):
     # Define the weights, the SNOMED CT code for the normal class, and equivalent SNOMED CT codes.
     weights_file = 'weights.csv'
     normal_class = '426783006'
-    equivalent_classes = [['713427006', '59118001'], ['284470004', '63593006'], ['427172004', '17338001']]
 
     # Load the scored classes and the weights for the Challenge metric.
     print('Loading weights...')
-    classes, weights = load_weights(weights_file, equivalent_classes)
+    classes, weights = load_weights(weights_file)
 
     # Load the label and output files.
     print('Loading label and output files...')
     label_files, output_files = find_challenge_files(label_directory, output_directory)
-    labels = load_labels(label_files, classes, equivalent_classes)
-    binary_outputs, scalar_outputs = load_outputs(output_files, classes, equivalent_classes)
+    labels = load_labels(label_files, classes)
+    binary_outputs, scalar_outputs = load_outputs(output_files, classes)
 
     # Evaluate the model by comparing the labels and outputs.
     print('Evaluating model...')
@@ -71,7 +81,7 @@ def find_challenge_files(label_directory, output_directory):
     label_files = list()
     output_files = list()
     print("Step 1 - finding files.")
-    for f in tqdm.tqdm(sorted(os.listdir(label_directory))):
+    for f in sorted(os.listdir(label_directory)):
         F = os.path.join(label_directory, f) # Full path for label file
         if os.path.isfile(F) and F.lower().endswith('.hea') and not f.lower().startswith('.'):
             root, ext = os.path.splitext(f)
@@ -89,9 +99,9 @@ def find_challenge_files(label_directory, output_directory):
         raise IOError('No label or output files found.')
 
 # For each set of equivalent classes, replace each class with the representative class for the set.
-def replace_equivalent_classes(classes, equivalent_classes):
+def replace_equivalent_classes(classes):
     for j, x in enumerate(classes):
-        for multiple_classes in equivalent_classes:
+        for multiple_classes in EQUIVALENT_CLASSES:
             if x in multiple_classes:
                 classes[j] = multiple_classes[0] # Use the first class as the representative class.
     return classes
@@ -140,13 +150,13 @@ def load_table(table_file):
     return rows, cols, values
 
 # Load weights.
-def load_weights(weight_file, equivalent_classes):
+def load_weights(weight_file):
     # Load the weight matrix.
     rows, cols, values = load_table(weight_file)
     assert(rows == cols)
 
     # For each collection of equivalent classes, replace each class with the representative class for the set.
-    rows = replace_equivalent_classes(rows, equivalent_classes)
+    rows = replace_equivalent_classes(rows)
 
     # Check that equivalent classes have identical weights.
     for j, x in enumerate(rows):
@@ -163,7 +173,7 @@ def load_weights(weight_file, equivalent_classes):
     return classes, weights
 
 # Load labels from header/label files.
-def load_labels(label_files, classes, equivalent_classes):
+def load_labels(label_files, classes):
     # The labels should have the following form:
     #
     # Dx: label_1, label_2, label_3
@@ -179,7 +189,7 @@ def load_labels(label_files, classes, equivalent_classes):
             for l in f:
                 if l.startswith('#Dx'):
                     dxs = [arr.strip() for arr in l.split(': ')[1].split(',')]
-                    dxs = replace_equivalent_classes(dxs, equivalent_classes)
+                    dxs = replace_equivalent_classes(dxs)
                     tmp_labels.append(dxs)
 
     # Use one-hot encoding for labels.
@@ -192,8 +202,33 @@ def load_labels(label_files, classes, equivalent_classes):
 
     return labels
 
+def clean_line(line):
+    return [arr.strip() for arr in line.split(',')]
+
 # Load outputs from output files.
-def load_outputs(output_files, classes, equivalent_classes):
+
+def load_output(i, filepath):
+    with open(filepath, 'r') as f:
+        lines = [l for l in f if l.strip() and not l.strip().startswith('#')]
+    lengths = [len(l.split(',')) for l in lines]
+    if len(lines)>=3 and len(set(lengths))==1:
+
+        labels = replace_equivalent_classes(
+                clean_line(lines[0])
+            )
+        binary_outputs = [1 if arr in ('1', 'True', 'true', 'T', 't') else 0 for arr in clean_line(lines[1])]
+        
+        scalar_outputs = [float(arr) if is_number(arr) else 0 for arr in clean_line(lines[2])]
+
+    else:
+        print('- The output file {} has formatting errors, so all outputs are assumed to be negative for this recording.'.format(output_files[i]))
+        labels = list()
+        binary_outputs = list()
+        scalar_outputs = list()
+
+    return labels, binary_outputs, scalar_outputs
+
+def load_outputs(output_files, classes):
     # The outputs should have the following form:
     #
     # diagnosis_1, diagnosis_2, diagnosis_3
@@ -208,41 +243,58 @@ def load_outputs(output_files, classes, equivalent_classes):
     tmp_binary_outputs = list()
     tmp_scalar_outputs = list()
     print("Step 3 - loading outputs")
-    for i in tqdm.tqdm(range(num_recordings)):
-        with open(output_files[i], 'r') as f:
-            lines = [l for l in f if l.strip() and not l.strip().startswith('#')]
-            lengths = [len(l.split(',')) for l in lines]
-            if len(lines)>=3 and len(set(lengths))==1:
-                for j, l in enumerate(lines):
-                    arrs = [arr.strip() for arr in l.split(',')]
-                    if j==0:
-                        row = arrs
-                        row = replace_equivalent_classes(row, equivalent_classes)
-                        tmp_labels.append(row)
-                    elif j==1:
-                        row = list()
-                        for arr in arrs:
-                            number = 1 if arr in ('1', 'True', 'true', 'T', 't') else 0
-                            row.append(number)
-                        tmp_binary_outputs.append(row)
-                    elif j==2:
-                        row = list()
-                        for arr in arrs:
-                            number = float(arr) if is_number(arr) else 0
-                            row.append(number)
-                        tmp_scalar_outputs.append(row)
-            else:
-                print('- The output file {} has formatting errors, so all outputs are assumed to be negative for this recording.'.format(output_files[i]))
-                tmp_labels.append(list())
-                tmp_binary_outputs.append(list())
-                tmp_scalar_outputs.append(list())
+    with mp.Pool(N_JOBS) as pool:
+        results = pool.starmap(load_output, enumerate(output_files))
+    tmp_labels, tmp_binary_outputs, tmp_scalar_outputs = list(zip(*results))
+    # for i in tqdm.tqdm(range(num_recordings)):
+    #     with open(output_files[i], 'r') as f:
+    #         lines = [l for l in f if l.strip() and not l.strip().startswith('#')]
+    #     lengths = [len(l.split(',')) for l in lines]
+    #     if len(lines)>=3 and len(set(lengths))==1:
+
+    #         tmp_labels.append(
+    #             replace_equivalent_classes(
+    #                 clean_line(lines[0])
+    #             )
+    #         )
+    #         tmp_binary_outputs.append(
+    #             [1 if arr in ('1', 'True', 'true', 'T', 't') else 0 for arr in clean_line(lines[1])]
+    #         )
+    #         tmp_scalar_outputs.append(
+    #             [float(arr) if is_number(arr) else 0 for arr in clean_line(lines[2])]
+    #         )
+                
+    #         # for j, l in enumerate(lines):
+    #         #     arrs = [arr.strip() for arr in l.split(',')]
+    #         #     if j==0:
+    #         #         row = arrs
+    #         #         row = replace_equivalent_classes(row)
+    #         #         tmp_labels.append(row)
+    #         #     elif j==1:
+    #         #         row = list()
+    #         #         for arr in arrs:
+    #         #             number = 1 if arr in ('1', 'True', 'true', 'T', 't') else 0
+    #         #             row.append(number)
+    #         #         tmp_binary_outputs.append(row)
+    #         #     elif j==2:
+    #         #         row = list()
+    #         #         for arr in arrs:
+    #         #             number = float(arr) if is_number(arr) else 0
+    #         #             row.append(number)
+    #         #         tmp_scalar_outputs.append(row)
+    #     else:
+    #         print('- The output file {} has formatting errors, so all outputs are assumed to be negative for this recording.'.format(output_files[i]))
+    #         tmp_labels.append(list())
+    #         tmp_binary_outputs.append(list())
+    #         tmp_scalar_outputs.append(list())
 
     # Use one-hot encoding for binary outputs and the same order for scalar outputs.
     # If equivalent classes have different binary outputs, then the representative class is positive if any equivalent class is positive.
     # If equivalent classes have different scalar outputs, then the representative class is the mean of the equivalent classes.
+    print("Hot encoding labels")
     binary_outputs = np.zeros((num_recordings, num_classes), dtype=np.bool)
     scalar_outputs = np.zeros((num_recordings, num_classes), dtype=np.float64)
-    for i in range(num_recordings):
+    for i in tqdm.tqdm(range(num_recordings)):
         dxs = tmp_labels[i]
         for j, x in enumerate(classes):
             indices = [k for k, y in enumerate(dxs) if x==y]
