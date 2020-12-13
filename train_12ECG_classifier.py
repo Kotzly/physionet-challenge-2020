@@ -17,10 +17,12 @@ from os.path import join
 
 from sklearn.model_selection import train_test_split
 
+import tensorflow as tf
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import InputLayer, Dense, Dropout
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras import backend as K
 
 N_JOBS = os.cpu_count() - 1
 
@@ -109,6 +111,10 @@ def train_12ECG_classifier(input_directory, output_directory, model="mlp"):
     x_val = scaler.transform(x_val)
     
     # Train the classifier
+    K.clear_session()
+    np.random.seed(1)
+    tf.set_random_seed(1)
+
     model = create_nn(
         n_inputs=x_train.shape[1],
         n_classes=y_train.shape[1]
