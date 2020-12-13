@@ -5,7 +5,7 @@ from scipy.io import loadmat
 from run_12ECG_classifier import load_12ECG_artifacts, run_12ECG_classifier
 import tqdm
 from os.path import join
-
+from pathlib import Path
 
 def load_challenge_data(filename):
 
@@ -24,9 +24,9 @@ def load_challenge_data(filename):
 def save_challenge_predictions(output_directory, filename, scores, labels, classes):
 
     recording = os.path.splitext(filename)[0]
-    new_file = filename.replace('.mat','.csv')
-    output_file = os.path.join(output_directory,new_file)
-
+    new_filename = filename.replace('.mat','.csv')
+    output_file = os.path.join(output_directory, new_filename)
+    
     # Include the filename as the recording number
     recording_string = '#{}'.format(recording)
     class_string = ','.join(classes)
@@ -74,7 +74,7 @@ if __name__ == '__main__':
         data,header_data = load_challenge_data(f)
         current_label, current_score, classes = run_12ECG_classifier(data, header_data, artifacts)
         # Save results.
-        save_challenge_predictions(output_directory, f, current_score, current_label, classes)
+        save_challenge_predictions(output_directory, Path(f).name, current_score, current_label, classes)
 
 
     print('Done.')

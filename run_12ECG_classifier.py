@@ -19,12 +19,11 @@ def run_12ECG_classifier(data, header_data, artifacts):
     feats_reshape = features.reshape(1, -1)
     feats_reshape = imputer.transform(feats_reshape)
     feats_reshape = scaler.transform(feats_reshape)
-    current_label = model.predict(feats_reshape)[0]
-    current_label=current_label.astype(int)
-    current_score = model.predict_proba(feats_reshape)
-    current_score = np.asarray(current_score)
-    current_score = current_score[:,0,1]
-
+    pred = model.predict(feats_reshape)[0]
+    current_label = (pred > .5)
+    current_label = current_label.astype(int)
+    
+    current_score = pred
     return current_label, current_score,classes
 
 def load_12ECG_artifacts(files_path):
