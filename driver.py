@@ -6,6 +6,7 @@ from run_12ECG_classifier import load_12ECG_artifacts, run_12ECG_classifier
 import tqdm
 from os.path import join
 
+
 def load_challenge_data(filename):
 
     x = loadmat(filename)
@@ -16,7 +17,6 @@ def load_challenge_data(filename):
 
     with open(input_header_file,'r') as f:
         header_data=f.readlines()
-
 
     return data, header_data
 
@@ -55,6 +55,7 @@ if __name__ == '__main__':
                 input_files.append(f)
     else:
         input_files = list(np.load(join(model_input, "header_files_test.npy")))
+        input_files = [f for f in input_files if f.lower().endswith("mat") and not f.startswith('.')]
 
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
