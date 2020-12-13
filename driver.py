@@ -68,7 +68,6 @@ if __name__ == '__main__':
     num_files = len(input_files)
 
     for i, f in enumerate(input_files):
-        f = str(f)
         if i % 1000 == 1:
             print('\t{}/{}...'.format(i+1, num_files))
         data,header_data = load_challenge_data(f)

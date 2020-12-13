@@ -24,11 +24,6 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 N_JOBS = os.cpu_count() - 1
 
-# "python python-classifier-2020\train_model.py ..\Datasets\Physionet2020Challenge\all output"
-# "python evaluate_12ECG_score.py "../../Datasets/Physionet2020Challenge/all" ../output"
-# "python evaluate_12ECG_score.py "../../Datasets/Physionet2020Challenge/all" ../output"
-
-
 def create_nn(n_inputs=14, n_classes=111):
     neural_model = Sequential(
         [
@@ -71,9 +66,9 @@ def load_data(output_directory, header_files):
         x_val, x_test, y_val, y_test, header_files_val, header_files_test = train_test_split(x_valtest, y_valtest, header_files_valtest, test_size=0.5, random_state=1)
 
         del x_valtest, y_valtest, features, labels
-        header_files_train = [str(Path(x).absolute) for x in header_files_train]
-        header_files_val = [str(Path(x).absolute) for x in header_files_val]
-        header_files_test = [str(Path(x).absolute) for x in header_files_test]
+        header_files_train = [str(Path(x).absolute()) for x in header_files_train]
+        header_files_val = [str(Path(x).absolute()) for x in header_files_val]
+        header_files_test = [str(Path(x).absolute()) for x in header_files_test]
 
         np.save(join(output_directory, "x_train.npy"), x_train)
         np.save(join(output_directory, "y_train.npy"), y_train)
