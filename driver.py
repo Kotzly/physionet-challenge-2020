@@ -2,8 +2,9 @@
 
 import numpy as np, os, sys
 from scipy.io import loadmat
-from run_12ECG_classifier import load_12ECG_model, run_12ECG_classifier
+from run_12ECG_classifier import load_12ECG_artifacts, run_12ECG_classifier
 import tqdm
+from os.path import join
 
 def load_challenge_data(filename):
 
@@ -20,7 +21,7 @@ def load_challenge_data(filename):
     return data, header_data
 
 
-def save_challenge_predictions(output_directory,filename,scores,labels,classes):
+def save_challenge_predictions(output_directory, filename, scores, labels, classes):
 
     recording = os.path.splitext(filename)[0]
     new_file = filename.replace('.mat','.csv')
@@ -47,30 +48,32 @@ if __name__ == '__main__':
     output_directory = sys.argv[3]
 
     # Find files.
-    input_files = []
-    for f in os.listdir(input_directory):
-        if os.path.isfile(os.path.join(input_directory, f)) and not f.lower().startswith('.') and f.lower().endswith('mat'):
-            input_files.append(f)
+    if not os.path.isfile(join(model_input, "header_files_test.npy")):
+        input_files = []
+        for f in os.listdir(input_directory):
+            if os.path.isfile(os.path.join(input_directory, f)) and not f.lower().startswith('.') and f.lower().endswith('mat'):
+                input_files.append(f)
+    else:
+        input_files = list(np.load(join(model_input, "header_files_test.npy")))
+
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
 
     # Load model.
     print('Loading 12ECG model...')
-    model = load_12ECG_model(model_input)
-
-    # Iterate over files.
-    print('Extracting 12ECG features...')
-    num_files = len(input_files)
+    artifacts = load_12ECG_artifacts(model_input)
 
     print("Making predictions...")
+
+    num_files = len(input_files)
+
     for i, f in enumerate(input_files):
         if i % 1000 == 1:
-            print('    {}/{}...'.format(i+1, num_files))
-        tmp_input_file = os.path.join(input_directory,f)
-        data,header_data = load_challenge_data(tmp_input_file)
-        current_label, current_score,classes = run_12ECG_classifier(data,header_data, model)
+            print('\t{}/{}...'.format(i+1, num_files))
+        data,header_data = load_challenge_data(f)
+        current_label, current_score, classes = run_12ECG_classifier(data, header_data, artifacts)
         # Save results.
-        save_challenge_predictions(output_directory,f,current_score,current_label,classes)
+        save_challenge_predictions(output_directory, f, current_score, current_label, classes)
 
 
     print('Done.')

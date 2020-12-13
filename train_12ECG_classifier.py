@@ -3,42 +3,158 @@
 import numpy as np, os, sys, joblib
 from scipy.io import loadmat
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import RobustScaler
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
 from get_12ECG_features import get_12ECG_features
 import tqdm
 import multiprocessing as mp
 from pathlib import Path
 from itertools import chain
 import re
+import os
+from os.path import join
 
-N_JOBS = os.cpu_count()
+from sklearn.model_selection import train_test_split
 
-def train_12ECG_classifier(input_directory, output_directory, n_jobs=4):
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import InputLayer, Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
+
+N_JOBS = os.cpu_count() - 1
+
+# "python python-classifier-2020\train_model.py ..\Datasets\Physionet2020Challenge\all output"
+# "python evaluate_12ECG_score.py "../../Datasets/Physionet2020Challenge/all" ../output"
+# "python evaluate_12ECG_score.py "../../Datasets/Physionet2020Challenge/all" ../output"
+
+
+def create_nn(n_inputs=14, n_classes=111):
+    neural_model = Sequential(
+        [
+            InputLayer(input_shape=(n_inputs,)),
+            Dense(200, activation="relu"),
+            Dropout(.2),
+            Dense(n_classes, activation="sigmoid")
+        ]
+    )
+
+    neural_model.compile(
+        optimizer=Adam(lr=1e-4),
+        loss="categorical_crossentropy",
+        metrics=["accuracy"]
+    )
+    
+    return neural_model
+
+def load_data(output_directory, header_files):
+    if os.path.isfile(join(output_directory, "x_train.npy")):
+        print("Found saved data. Loading...")
+        x_train = np.load(join(output_directory, "x_train.npy"))
+        y_train = np.load(join(output_directory, "y_train.npy"))
+        header_files_train = np.load(join(output_directory, "header_files_train.npy"))
+
+        x_val = np.load(join(output_directory, "x_val.npy"))
+        y_val = np.load(join(output_directory, "y_val.npy"))
+        header_files_val = np.load(join(output_directory, "header_files_val.npy"))
+
+        x_test = np.load(join(output_directory, "x_test.npy"))
+        y_test = np.load(join(output_directory, "y_test.npy"))
+        header_files_test = np.load(join(output_directory, "header_files_test.npy"))
+
+        classes = list(np.load(join(output_directory, "classes.npy")))
+    else:
+        print("Did not find saved data.")
+        classes, features, labels = load_challenge_data(header_files)
+
+        x_train, x_valtest, y_train, y_valtest, header_files_train, header_files_valtest = train_test_split(features, labels, header_files, test_size=0.5, random_state=1)
+        x_val, x_test, y_val, y_test, header_files_val, header_files_test = train_test_split(x_valtest, y_valtest, header_files_valtest, test_size=0.5, random_state=1)
+
+        del x_valtest, y_valtest, features, labels
+        header_files_train = [str(Path(x).absolute) for x in header_files_train]
+        header_files_val = [str(Path(x).absolute) for x in header_files_val]
+        header_files_test = [str(Path(x).absolute) for x in header_files_test]
+
+        np.save(join(output_directory, "x_train.npy"), x_train)
+        np.save(join(output_directory, "y_train.npy"), y_train)
+        np.save(join(output_directory, "header_files_train.npy"), header_files_train)
+
+        np.save(join(output_directory, "x_val.npy"), x_val)
+        np.save(join(output_directory, "y_val.npy"), y_val)
+        np.save(join(output_directory, "header_files_val.npy"), header_files_val)
+
+        np.save(join(output_directory, "x_test.npy"), x_test)
+        np.save(join(output_directory, "y_test.npy"), y_test)
+        np.save(join(output_directory, "header_files_test.npy"), header_files_test)
+
+        np.save(join(output_directory, "classes.npy"), classes)
+
+    return x_train, y_train, x_val, y_val, classes
+
+def train_12ECG_classifier(input_directory, output_directory, model="mlp"):
     # Load data.
-    header_files = []
     print('Listing files...')
-    for f in Path(input_directory).glob("*.hea"):
-        header_files.append(f)
+    header_files = list(Path(input_directory).glob("*.hea"))
+
     print("Loading data...")
-    classes, features, labels = load_challenge_data(header_files)
+
+    x_train, y_train, x_val, y_val, classes = load_data(output_directory, header_files)
+
 
     # Train model.
     print('Training model...')
-
     # Replace NaN values with mean values
-    imputer=SimpleImputer().fit(features)
-    features=imputer.transform(features)
+    imputer = SimpleImputer()
+    scaler = RobustScaler()
 
+    x_train = imputer.fit_transform(x_train)
+    x_val = imputer.transform(x_val)
+
+    x_train = scaler.fit_transform(x_train)
+    x_val = scaler.transform(x_val)
+    
     # Train the classifier
-    model = RandomForestClassifier(max_depth=8).fit(features,labels)
+    model = create_nn(
+        n_inputs=x_train.shape[1],
+        n_classes=y_train.shape[1]
+    )
+    model.summary()
+
+    callbacks = EarlyStopping(
+        monitor="val_loss",
+        patience=30,
+        min_delta=1e-3,
+        restore_best_weights=True
+    )
+    history = model.fit(
+        x_train, 
+        y_train,
+        callbacks=callbacks,
+        validation_data=(x_val, y_val),
+        epochs=1000,
+        batch_size=32,
+        workers=N_JOBS,
+        use_multiprocessing=N_JOBS>1
+    )
 
     # Save model.
     print('Saving model...')
 
-    final_model={'model': model, 'imputer': imputer,'classes': classes}
-    filename = os.path.join(output_directory, 'finalized_model.sav')
-    joblib.dump(final_model, filename, protocol=0)
-    
+    # final_model={'model': model, 'imputer': imputer,'classes': classes}
+    # filename = os.path.join(output_directory, 'finalized_model.sav')
+    if not os.path.exists(output_directory):
+        os.mkdir(output_directory)
+
+    artifacts = {
+        'imputer': imputer,
+        'classes': classes,
+        'scaler': scaler
+    }
+    filepath = os.path.join(output_directory, 'artifacts.joblib')
+    joblib.dump(artifacts, filepath, protocol=0)    
+    joblib.dump(history.history, os.path.join(output_directory, 'history.joblib'))
+    model.save(os.path.join(output_directory, "model"))
+
     # model_filename = os.path.join(output_directory, 'model.sav')
     # joblib.dump({'model': model}, model_filename, protocol=0)
     
@@ -66,10 +182,12 @@ def load_features_from_files(mat_files, header_files):
     return features
 
 def load_challenge_data(header_files):
+    print("\tLoading labels")
     classes, labels = get_classes(header_files)
 
     mat_files = [str(header_file).replace('.hea', '.mat') for header_file in header_files]
 
+    print("\tLoading features")
     features = load_features_from_files(mat_files, header_files)
 
     return classes, features, labels
