@@ -229,7 +229,7 @@ def load_output(filepath, classes):
         scalar_outputs_ = np.array([float(arr) if is_number(arr) else 0 for arr in clean_line(lines[2])])
 
     else:
-        print('- The output file {} has formatting errors, so all outputs are assumed to be negative for this recording.'.format(output_files[i]))
+        print('- The output file {} has formatting errors, so all outputs are assumed to be negative for this recording.'.format(filepath))
         labels = np.array([])
         binary_outputs = np.array([])
         scalar_outputs = np.array([])
