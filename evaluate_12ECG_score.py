@@ -19,6 +19,7 @@
 import numpy as np, os, os.path, sys
 import multiprocessing as mp
 import tqdm
+from pathlib import Path
 
 N_JOBS = os.cpu_count()
 
@@ -81,17 +82,22 @@ def find_challenge_files(label_directory, output_directory):
     label_files = list()
     output_files = list()
     print("Step 1 - finding files.")
-    for f in sorted(os.listdir(label_directory)):
+    if os.path.exists("header_files_test.npy"):
+        filelist = list(sorted(np.load("header_files_test.npy")))
+        filelist = [Path(f).name for f in filelist]
+    else:
+        filelist = list(sorted(os.listdir(label_directory)))
+    for f in filelist:
         F = os.path.join(label_directory, f) # Full path for label file
         if os.path.isfile(F) and F.lower().endswith('.hea') and not f.lower().startswith('.'):
-            root, ext = os.path.splitext(f)
+            root, _ = os.path.splitext(f)
             g = root + '.csv'
             G = os.path.join(output_directory, g) # Full path for corresponding output file
             if os.path.isfile(G):
                 label_files.append(F)
                 output_files.append(G)
             else:
-                raise IOError('Output file {} not found for label file {}.'.format(g, f))
+                raise IOError('Output file {} not found for label file {}.'.format(G, F))
 
     if label_files and output_files:
         return label_files, output_files
