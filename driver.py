@@ -55,7 +55,7 @@ if __name__ == '__main__':
                 input_files.append(f)
     else:
         input_files = list(np.load(join(model_input, "header_files_test.npy")))
-        input_files = [f for f in input_files if f.lower().endswith("mat") and not f.startswith('.')]
+        input_files = [f.replace(".hea", ".mat") for f in input_files if f.lower().endswith(".hea") and not f.startswith('.')]
 
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
