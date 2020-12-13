@@ -113,7 +113,7 @@ def train_12ECG_classifier(input_directory, output_directory, model="mlp"):
     # Train the classifier
     K.clear_session()
     np.random.seed(1)
-    tf.set_random_seed(1)
+    tf.random.set_seed(1)
 
     model = create_nn(
         n_inputs=x_train.shape[1],
