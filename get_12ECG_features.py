@@ -168,7 +168,6 @@ def get_12ECG_features(data, header_data):
 
     
     assert len(data) == 12
-    all_features = []
     for i in range(len(data)):
     #   We are only using data from lead1
 
