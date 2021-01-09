@@ -1,18 +1,44 @@
 #!/usr/bin/env python
 
-import os, sys
-from train_12ECG_classifier import train_12ECG_classifier
+import os
+from physionet_challenge.training import train
+import argparse
 
 if __name__ == '__main__':
     # Parse arguments.
-    input_directory = sys.argv[1]
-    output_directory = sys.argv[2]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_dir", help="Input directory.")
+    parser.add_argument("output_dir", help="Output directory.")
+    parser.add_argument(
+        "--split",
+        help="Split json filepath.",
+        default=None
+    )
+    parser.add_argument(
+        "--checkpoint",
+        help="Checkpoint folder.",
+        default=None
+    )
+    parser.add_argument(
+        "--seed",
+        help="Seed for reproducibility.",
+        default=1
+    )
+    parser.add_argument("--model", help="Model type.", default="mlp")
+    args = parser.parse_args()
 
-    if not os.path.isdir(output_directory):
-        os.mkdir(output_directory)
+    if not os.path.isdir(args.output_dir):
+        os.mkdir(args.output_dir)
 
     print('Running training code...')
 
-    train_12ECG_classifier(input_directory, output_directory)
+    train(
+        args.input_dir,
+        args.output_dir,
+        split_filepath=args.split,
+        checkpoint_folder=args.checkpoint,
+        model=args.model,
+        seed=args.seed
+    )
 
     print('Done.')

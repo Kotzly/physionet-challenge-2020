@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-import tensorflow as tf
-from tensorflow.keras import Sequential, Model
-from tensorflow.keras.layers import InputLayer, Dense, Dropout, Input, Concatenate
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Dense, Dropout, Input, Concatenate
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.regularizers import l2
+
 
 def BaselineMultibranch(n_inputs=14, n_classes=111):
     inp = Input((n_inputs,))
@@ -16,12 +18,12 @@ def BaselineMultibranch(n_inputs=14, n_classes=111):
         branch_2 = Dense(1, activation="sigmoid")
         branches.append(branch_2(dropout(branch_1(dense_2_output))))
     output = Concatenate()(branches)
-        
+
     neural_model = Model(inputs=inp, outputs=output)
     neural_model.compile(
         optimizer=Adam(lr=1e-4),
         loss="categorical_crossentropy",
         metrics=["accuracy"]
     )
-    
+
     return neural_model

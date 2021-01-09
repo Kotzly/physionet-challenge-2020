@@ -1,6 +1,7 @@
 import numpy as np
 from physionet_challenge.processing.features import baseline_features
 
+
 def run_classifier_for_subject(data, header_data, artifacts):
     # Use your classifier here to obtain a label and score for each class.
     model = artifacts['model']
