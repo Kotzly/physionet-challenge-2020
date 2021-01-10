@@ -1,5 +1,13 @@
 # PhysioNet/CinC Challenge 2020  Classification code
 
+The current important files are:
+    - data/split.py - Create the train/val/test splits.
+    - command/train_model.py - Run the training script.
+    - command/inference.py - Create the inference files.
+    - evaluation/evaluation.py - Use the inference files to calculate the challenge metrics.
+
+They need to be run in this order.
+
 ## Contents
 
 This code uses two main scripts to train the model and classify the data:
