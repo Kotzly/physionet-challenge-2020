@@ -9,29 +9,12 @@ from physionet_challenge.data.split import load_split_json
 from physionet_challenge.data.save import save_challenge_predictions
 import argparse
 
-# python physionet_challenge\command\evaluation.py model_new ..\..\Datasets\Physionet2020Challenge\all inference_new --split_filepath split.json --split train
-if __name__ == '__main__':
-    # Parse arguments.
-    parser = argparse.ArgumentParser()
-    parser.add_argument("model_dir", help="Input model directory.")
-    parser.add_argument("input_dir", help="Input data directory.")
-    parser.add_argument("output_dir", help="Output predictions directory.")
-    parser.add_argument(
-        "--split_filepath",
-        help="Split filepath.",
-        default=None
-    )
-    parser.add_argument("--split", help="Split name.", default="train")
-    
-    args = parser.parse_args()
 
-    model_input = args.model_dir
-    input_directory = args.input_dir
-    output_directory = args.output_dir
+def main(model_dir, input_dir, output_dir, split_filepath, split):
 
-    if args.split is not None:
-        split_dict = load_split_json(args.split_filepath)
-        split_subjects = split_dict[args.split]
+    if split is not None:
+        split_dict = load_split_json(split_filepath)
+        split_subjects = split_dict[split]
 
     # Find files.
     _input_files = Path(input_directory).glob("*.mat")
@@ -53,14 +36,14 @@ if __name__ == '__main__':
         mat_filepaths.append(join(input_directory, mat_file))
         header_filepaths.append(join(input_directory, h_file))
 
-    print("Loaded {} subjects from split {}".format(len(input_files), args.split))
+    print("Loaded {} subjects from split {}".format(len(input_files), split))
 
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
 
     # Load model.
     print('Loading 12ECG model...')
-    artifacts = load_artifacts(model_input)
+    artifacts = load_artifacts(model_dir)
 
     print("Making predictions...")
 
@@ -107,3 +90,31 @@ if __name__ == '__main__':
     #     )
 
     print('Done.')
+
+
+if __name__ == '__main__':
+    # Parse arguments.
+    parser = argparse.ArgumentParser()
+    parser.add_argument("model_dir", help="Input model directory.")
+    parser.add_argument("input_dir", help="Input data directory.")
+    parser.add_argument("output_dir", help="Output predictions directory.")
+    parser.add_argument(
+        "--split_filepath",
+        help="Split filepath.",
+        default=None
+    )
+    parser.add_argument("--split", help="Split name.", default="train")
+    
+    args = parser.parse_args()
+
+    model_dir = args.model_dir
+    input_directory = args.input_dir
+    output_directory = args.output_dir
+
+    main(
+        model_dir,
+        input_directory,
+        output_directory,
+        args.split_filepath,
+        args.split
+    )

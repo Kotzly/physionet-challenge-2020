@@ -23,7 +23,6 @@ def main(input_dir, output_dir, checkpoint_folder, split_filepath, model, seed, 
     print('Done.')
 
 
-# python physionet_challenge\command\train_model.py ..\..\Datasets\Physionet2020Challenge\all model_new --split split.json --checkpoint .
 if __name__ == '__main__':
     # Parse arguments.
     parser = argparse.ArgumentParser()

@@ -40,7 +40,6 @@ def train_test_split(arr, test_size=.2, random_state=1):
     x2 = arr[idx[N_split:]]
     return x1, x2
 
-#python physionet_challenge\data\split.py ..\..\Datasets\Physionet2020Challenge\all --split_filepath split.json --classes_filepath classes.npy
 def split_dataset(
     input_folder,
     split_filepath=None,
