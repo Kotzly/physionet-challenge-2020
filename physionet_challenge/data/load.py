@@ -67,8 +67,16 @@ def load_dataset(dataset_directory, classes=None, subjects=None, processing="bas
     if subjects is None:
         subjects = [os.path.splitext(filepath.name) for filepath in Path(dataset_directory).glob(".hea")]
 
+    PROCESSING_FN_DICT = {
+        "baseline": load_baseline_features_from_file,
+    }
+
     if classes is None:
         classes = load_all_classes(dataset_directory)
+
+    if isinstance(processing, str) or processing is None:
+        processing = PROCESSING_FN_DICT[processing]
+    
 
     header_filepaths = [Path(dataset_directory) / (subject + ".hea") for subject in subjects]
     mat_filepaths = [Path(dataset_directory) / (subject + ".mat") for subject in subjects]
@@ -81,8 +89,7 @@ def load_dataset(dataset_directory, classes=None, subjects=None, processing="bas
     labels = get_labels(header_filepaths, classes)
 
     print("\tLoading features")
-    if processing == "baseline":
-        features = load_features_from_files(mat_filepaths, header_filepaths)
+    features = load_features_from_files(mat_filepaths, header_filepaths, file_processing_fn=processing)
 
     return features, labels
 
@@ -155,3 +162,4 @@ def load_features_labels(dataset_directory, classes, split_filepath=None, split=
 def load_all_classes(dataset_directory):
     classes, _ = split_dataset(dataset_directory)
     return classes
+
