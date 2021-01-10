@@ -53,24 +53,27 @@ def load_features_from_files(mat_files, header_files):
     return features
 
 
-def load_dataset(dataset_directory, subjects=None):
+def load_dataset(dataset_directory, classes=None, subjects=None):
     if subjects is None:
         subjects = [os.path.splitext(filepath.name) for filepath in Path(dataset_directory).glob(".hea")]
 
+    if classes is None:
+        classes = load_all_classes(dataset_directory)
+
     header_filepaths = [Path(dataset_directory) / (subject + ".hea") for subject in subjects]
-    mat_filepaths = [Path(dataset_directory) / (subject + ".hea") for subject in subjects]
+    mat_filepaths = [Path(dataset_directory) / (subject + ".mat") for subject in subjects]
 
     for i in range(len(subjects)):
         assert header_filepaths[i].exists()
         assert mat_filepaths[i].exists()
 
     print("\tLoading labels")
-    classes, labels = get_labels(header_filepaths)
+    labels = get_labels(header_filepaths, classes)
 
     print("\tLoading features")
     features = load_features_from_files(mat_filepaths, header_filepaths)
 
-    return classes, features, labels
+    return features, labels
 
 
 def get_labels_from_txt(txt):
@@ -80,22 +83,27 @@ def get_labels_from_txt(txt):
     return classes
 
 
-def get_labels_from_file(filename):
+def get_labels_from_file(filename, all_classes_ordered=None):
     with open(filename, 'r') as f:
-        classes = get_labels_from_txt(f.read())
-    return classes
+        labels_txt = get_labels_from_txt(f.read())
+
+    if all_classes_ordered is None:
+        return labels_txt
+
+    labels = np.zeros((1, len(all_classes_ordered)))
+    for c in labels_txt:
+        labels[0, all_classes_ordered.index(c)] = 1
+
+    return labels
 
 
 def get_labels(filepaths, all_classes_ordered):
     with mp.Pool(N_JOBS) as pool:
-        classes_list = pool.map(get_labels_from_file, filepaths)
+        labels_txt = pool.map(get_labels_from_file, filepaths)
 
-    all_classes_ordered = sorted(set(list(chain(*classes_list))))
-
-    labels = np.zeros((len(filepaths), len(all_classes_ordered)))
-
-    for i, file_classes in enumerate(classes_list):
-        for c in file_classes:
+    labels = np.zeros((len(labels_txt), len(all_classes_ordered)))
+    for i, label in enumerate(labels_txt):
+        for c in label:
             labels[i, all_classes_ordered.index(c)] = 1
 
     return labels
@@ -119,16 +127,16 @@ def get_split_subjects(split_filepath, split="train", dataset_directory=None):
         subjects = json.load(file)[split]
     if dataset_directory is not None:
         filepaths = Path(dataset_directory).glob("*")
-        dir_subjects = [os.path.splitext(filepath.name) for filepath in filepaths]
+        dir_subjects = [os.path.splitext(filepath.name)[0] for filepath in filepaths]
         for subject in subjects:
             assert subject in dir_subjects, f"Subject {subject} is not in {dataset_directory}"
     return subjects
 
 
-def load_features_labels(dataset_directory, split_filepath=None, split=None, processing=None):
+def load_features_labels(dataset_directory, classes, split_filepath=None, split=None):
 
-    subjects = get_split_subjects(split_filepath, split=split, extension=".hea")
-    classes, features, labels = load_dataset(dataset_directory, subjects)
+    subjects = get_split_subjects(split_filepath, split=split)
+    features, labels = load_dataset(dataset_directory, subjects, classes)
 
     return features, labels
 

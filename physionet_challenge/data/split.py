@@ -40,7 +40,7 @@ def train_test_split(arr, test_size=.2, random_state=1):
     x2 = arr[idx[N_split:]]
     return x1, x2
 
-
+#python physionet_challenge\data\split.py ..\..\Datasets\Physionet2020Challenge\all --split_filepath split.json --classes_filepath classes.npy
 def split_dataset(
     input_folder,
     split_filepath=None,
@@ -50,6 +50,7 @@ def split_dataset(
     seed=1
 ):
 
+    print(folds_names, proportions)
     assert sum(proportions) == 1, "Sum of proportions must be 1."
     if folds_names is None:
         folds_names = [f"split_{i}" for i in range(len(proportions))]
@@ -107,6 +108,7 @@ def split_dataset(
                 splits[folds_names[i]].extend(s_this)
             splits[folds_names[-1]].extend(subject_list)
             # Save splits
+        print(folds_names)
         with open(split_filepath, "w") as file:
             json.dump(splits, file)
 
@@ -122,7 +124,7 @@ def split_dataset(
     return splits, classes
 
 
-if __name__ == "__name__":
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_folder", help="Input directory.")
     parser.add_argument("--split_filepath", help="Filepath to save split json.")
@@ -138,7 +140,7 @@ if __name__ == "__name__":
         proportions = [float(x.strip()) for x in args.proportions.split(",")]
 
     if args.names is None:
-        names = PROPORTIONS
+        names = FOLDS_NAMES
     else:
         names = [x.strip().lower() for x in args.names.split(",")]
 
@@ -147,6 +149,6 @@ if __name__ == "__name__":
         args.split_filepath,
         args.classes_filepath,
         proportions=proportions,
-        fold_names=names,
+        folds_names=names,
         seed=1
     )

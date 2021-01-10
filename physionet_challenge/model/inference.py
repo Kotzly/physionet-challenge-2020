@@ -1,15 +1,18 @@
 import numpy as np
 from physionet_challenge.processing.features import baseline_features
+from physionet_challenge.data.load import get_labels_from_file, load_features_from_file
 
 
-def run_classifier_for_subject(data, header_data, artifacts):
+def run_classifier_for_subject(mat_filepath, header_filepath, artifacts):
     # Use your classifier here to obtain a label and score for each class.
     model = artifacts['model']
     imputer = artifacts['imputer']
     classes = artifacts['classes']
     scaler = artifacts['scaler']
+    
+    features = load_features_from_file(mat_filepath, header_filepath)
+    # labels = get_labels_from_file(header_filepath)
 
-    features = np.asarray(baseline_features(data, header_data))
     feats_reshape = features.reshape(1, -1)
     feats_reshape = imputer.transform(feats_reshape)
     feats_reshape = scaler.transform(feats_reshape)

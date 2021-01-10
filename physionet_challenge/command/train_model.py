@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import os
-from physionet_challenge.training import train
+from physionet_challenge.training.train import train
 import argparse
 
+# python physionet_challenge\command\train_model.py ..\..\Datasets\Physionet2020Challenge\all model_new --split split.json --checkpoint .
 if __name__ == '__main__':
     # Parse arguments.
     parser = argparse.ArgumentParser()
