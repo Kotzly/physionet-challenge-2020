@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     if args.split is not None:
         split_dict = load_split_json(args.split_filepath)
-        split_subjects = split_dict[args.split][:10]
+        split_subjects = split_dict[args.split]
 
     # Find files.
     _input_files = Path(input_directory).glob("*.mat")
