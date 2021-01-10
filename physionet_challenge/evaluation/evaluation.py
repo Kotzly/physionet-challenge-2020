@@ -20,6 +20,8 @@ import numpy as np, os, os.path, sys
 import multiprocessing as mp
 import tqdm
 from pathlib import Path
+from physionet_challenge.data.load import get_split_subjects
+import argparse
 
 N_JOBS = os.cpu_count()
 
@@ -30,8 +32,8 @@ EQUIVALENT_CLASSES = [['713427006', '59118001'], ['284470004', '63593006'], ['42
 #     '284470004': '63593006',
 #     '427172004': '17338001'
 # }
-
-def evaluate_12ECG_score(label_directory, output_directory):
+# python physionet_challenge\evaluation\evaluation.py ..\..\Datasets\Physionet2020Challenge\all inference_new split.json validation
+def evaluate_12ECG_score(label_directory, output_directory, split_filepath=None, split=None):
     # Define the weights, the SNOMED CT code for the normal class, and equivalent SNOMED CT codes.
     weights_file = 'weights.csv'
     normal_class = '426783006'
@@ -42,7 +44,12 @@ def evaluate_12ECG_score(label_directory, output_directory):
 
     # Load the label and output files.
     print('Loading label and output files...')
-    label_files, output_files = find_challenge_files(label_directory, output_directory)
+    label_files, output_files = find_challenge_files(
+        label_directory,
+        output_directory,
+        split_filepath=split_filepath,
+        split=split
+    )
     labels = load_labels(label_files, classes)
     binary_outputs, scalar_outputs = load_outputs(output_files, classes)
 
@@ -78,15 +85,18 @@ def is_number(x):
         return False
 
 # Find Challenge files.
-def find_challenge_files(label_directory, output_directory):
+def find_challenge_files(label_directory, output_directory, split_filepath=None, split=None):
     label_files = list()
     output_files = list()
     print("Step 1 - finding files.")
-    if os.path.exists("header_files_test.npy"):
-        filelist = list(sorted(np.load("header_files_test.npy")))
-        filelist = [Path(f).name for f in filelist]
+    if split_filepath is not None:
+        subjects = get_split_subjects(split_filepath, split=split, dataset_directory=output_directory)
+        filelist = [subject + ".hea" for subject in subjects]
+        for filename in filelist:
+            assert (Path(label_directory) / filename).exists()
     else:
         filelist = list(sorted(os.listdir(label_directory)))
+    print(filelist[0], label_directory, output_directory)
     for f in filelist:
         F = os.path.join(label_directory, f) # Full path for label file
         if os.path.isfile(F) and F.lower().endswith('.hea') and not f.lower().startswith('.'):
@@ -492,21 +502,46 @@ def compute_challenge_metric(weights, labels, outputs, classes, normal_class):
     return normalized_score
 
 if __name__ == '__main__':
-    classes, auroc, auprc, auroc_classes, auprc_classes, accuracy, f_measure, f_measure_classes, f_beta_measure, g_beta_measure, challenge_metric = evaluate_12ECG_score(sys.argv[1], sys.argv[2])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dataset_directory", help="Directory with *.mat and *.hea")
+    parser.add_argument("prediction_directory", help="Directory with CSV prediction files.")
+    parser.add_argument("split_filepath", help="Split json filepath.")
+    parser.add_argument("split", help="Split name.")
+    args = parser.parse_args()
+
+    # classes, auroc, auprc, auroc_classes, auprc_classes, accuracy, f_measure, f_measure_classes, f_beta_measure, g_beta_measure, challenge_metric = evaluate_12ECG_score(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    classes, \
+    auroc, \
+    auprc, \
+    auroc_classes, \
+    auprc_classes, \
+    accuracy, \
+    f_measure, \
+    f_measure_classes, \
+    f_beta_measure, \
+    g_beta_measure, \
+    challenge_metric = evaluate_12ECG_score(
+        args.dataset_directory,
+        args.prediction_directory,
+        args.split_filepath,
+        args.split
+    )
     output_string = 'AUROC,AUPRC,Accuracy,F-measure,Fbeta-measure,Gbeta-measure,Challenge metric\n{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f}'.format(auroc, auprc, accuracy, f_measure, f_beta_measure, g_beta_measure, challenge_metric)
     class_output_string = 'Classes,{}\nAUROC,{}\nAUPRC,{}\nF-measure,{}'.format(
         ','.join(classes),
         ','.join('{:.3f}'.format(x) for x in auroc_classes),
         ','.join('{:.3f}'.format(x) for x in auprc_classes),
         ','.join('{:.3f}'.format(x) for x in f_measure_classes))
-
-    if len(sys.argv) == 3:
-        print(output_string)
-    elif len(sys.argv) == 4:
-        with open(sys.argv[3], 'w') as f:
-            f.write(output_string)
-    elif len(sys.argv) == 5:
-        with open(sys.argv[3], 'w') as f:
-            f.write(output_string)
-        with open(sys.argv[4], 'w') as f:
-            f.write(class_output_string)
+    print(output_string)
+    print("#"*50)
+    print(class_output_string)
+    # if len(sys.argv) == 3:
+    #     print(output_string)
+    # elif len(sys.argv) == 4:
+    #     with open(sys.argv[3], 'w') as f:
+    #         f.write(output_string)
+    # elif len(sys.argv) == 5:
+    #     with open(sys.argv[3], 'w') as f:
+    #         f.write(output_string)
+    #     with open(sys.argv[4], 'w') as f:
+    #         f.write(class_output_string)

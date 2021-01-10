@@ -50,7 +50,6 @@ def split_dataset(
     seed=1
 ):
 
-    print(folds_names, proportions)
     assert sum(proportions) == 1, "Sum of proportions must be 1."
     if folds_names is None:
         folds_names = [f"split_{i}" for i in range(len(proportions))]
@@ -108,12 +107,11 @@ def split_dataset(
                 splits[folds_names[i]].extend(s_this)
             splits[folds_names[-1]].extend(subject_list)
             # Save splits
-        print(folds_names)
         with open(split_filepath, "w") as file:
-            json.dump(splits, file)
+            json.dump(splits, file, indent=4)
 
         with open(Path(split_filepath).parent / "found_classes.json", "w") as file:
-            json.dump(all_diagnoses, file)
+            json.dump(all_diagnoses, file, indent=4)
 
     classes = list(sorted(all_diagnoses.keys()))
     if classes_filepath is not None:
