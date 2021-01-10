@@ -27,7 +27,12 @@ N_JOBS = os.cpu_count()
 
 EQUIVALENT_CLASSES = [['713427006', '59118001'], ['284470004', '63593006'], ['427172004', '17338001']]
 
-
+# EQUIVALENT_CLASSES = {
+#     '713427006': '59118001',
+#     '284470004': '63593006',
+#     '427172004': '17338001'
+# }
+# python physionet_challenge\evaluation\evaluation.py ..\..\Datasets\Physionet2020Challenge\all inference_new split.json validation
 def evaluate_12ECG_score(label_directory, output_directory, split_filepath=None, split=None):
     # Define the weights, the SNOMED CT code for the normal class, and equivalent SNOMED CT codes.
     weights_file = 'weights.csv'
