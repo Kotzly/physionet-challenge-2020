@@ -501,15 +501,7 @@ def compute_challenge_metric(weights, labels, outputs, classes, normal_class):
 
     return normalized_score
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("dataset_directory", help="Directory with *.mat and *.hea")
-    parser.add_argument("prediction_directory", help="Directory with CSV prediction files.")
-    parser.add_argument("split_filepath", help="Split json filepath.")
-    parser.add_argument("split", help="Split name.")
-    args = parser.parse_args()
-
-    # classes, auroc, auprc, auroc_classes, auprc_classes, accuracy, f_measure, f_measure_classes, f_beta_measure, g_beta_measure, challenge_metric = evaluate_12ECG_score(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+def main(dataset_directory, prediction_directory, split_filepath, split):
     classes, \
     auroc, \
     auprc, \
@@ -535,7 +527,24 @@ if __name__ == '__main__':
     print(output_string)
     print("#"*50)
     print(class_output_string)
-    # if len(sys.argv) == 3:
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dataset_directory", help="Directory with *.mat and *.hea")
+    parser.add_argument("prediction_directory", help="Directory with CSV prediction files.")
+    parser.add_argument("split_filepath", help="Split json filepath.")
+    parser.add_argument("split", help="Split name.")
+    args = parser.parse_args()
+
+    main(
+        args.dataset_directory, 
+        args.prediction_directory,
+        args.split_filepath,
+        args.split
+    )
+    # classes, auroc, auprc, auroc_classes, auprc_classes, accuracy, f_measure, f_measure_classes, f_beta_measure, g_beta_measure, challenge_metric = evaluate_12ECG_score(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+        # if len(sys.argv) == 3:
     #     print(output_string)
     # elif len(sys.argv) == 4:
     #     with open(sys.argv[3], 'w') as f:

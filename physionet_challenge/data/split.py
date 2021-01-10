@@ -122,6 +122,15 @@ def split_dataset(
     return splits, classes
 
 
+def main(input_folder, split_filepath, classes_filepath, proportions, folds_names, seed=1):
+    split_dataset(
+        input_folder,
+        split_filepath,
+        classes_filepath,
+        proportions=proportions,
+        folds_names=names,
+        seed=1
+    )
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_folder", help="Input directory.")
@@ -142,7 +151,7 @@ if __name__ == "__main__":
     else:
         names = [x.strip().lower() for x in args.names.split(",")]
 
-    split_dataset(
+    main(
         args.input_folder,
         args.split_filepath,
         args.classes_filepath,
