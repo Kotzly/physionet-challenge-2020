@@ -1,0 +1,6 @@
+joblib==1.0.0
+numpy==1.19.5
+scikit_learn==0.24.0
+scipy==1.6.0
+tensorflow==2.4.0
+tqdm==4.55.2
