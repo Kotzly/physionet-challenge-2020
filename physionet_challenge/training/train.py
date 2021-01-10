@@ -28,7 +28,6 @@ import warnings
 from physionet_challenge.utils.data import CLASSES
 
 warnings.simplefilter("ignore")
-# train("C:/Users/paull/Documents/Datasets/Physionet2020Challenge/all", "model_new", "split.json", "checkpoint")
 
 N_JOBS = os.cpu_count()
 
@@ -72,8 +71,8 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
     
     # Train the classifier
     K.clear_session()
-    np.random.seed(1)
-    tf.random.set_seed(1)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
 
     model_class = {
         "tabnet": TabNetModel,
