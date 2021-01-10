@@ -35,25 +35,35 @@ def load_recording_from_file(mat_filepath):
     return recording
 
 
-def load_features_from_file(mat_filepath, header_filepath):
+def load_features_from_file(mat_filepath, header_filepath, processing_fn=None):
+    # Principal function.
+    if processing_fn is None:
+        processing_fn = baseline_features
+    recording = load_recording_from_file(mat_filepath)
+    metadata = get_metadata_from_file(header_filepath)
+    features = processing_fn(recording, metadata)
+    return features
+
+def load_baseline_features_from_file(mat_filepath, header_filepath):
     # Principal function.
     recording = load_recording_from_file(mat_filepath)
     metadata = get_metadata_from_file(header_filepath)
     features = baseline_features(recording, metadata)
     return features
 
-
-def load_features_from_files(mat_files, header_files):
+def load_features_from_files(mat_files, header_files, file_processing_fn=None):
+    if file_processing_fn is None:
+        file_processing_fn = load_baseline_features_from_file
     with mp.Pool(N_JOBS) as pool:
         features = pool.starmap(
-            load_features_from_file,
+            file_processing_fn,
             zip(mat_files, header_files)
         )
     features = np.array(features)
     return features
 
 
-def load_dataset(dataset_directory, classes=None, subjects=None):
+def load_dataset(dataset_directory, classes=None, subjects=None, processing="baseline"):
     if subjects is None:
         subjects = [os.path.splitext(filepath.name) for filepath in Path(dataset_directory).glob(".hea")]
 
@@ -71,7 +81,8 @@ def load_dataset(dataset_directory, classes=None, subjects=None):
     labels = get_labels(header_filepaths, classes)
 
     print("\tLoading features")
-    features = load_features_from_files(mat_filepaths, header_filepaths)
+    if processing == "baseline":
+        features = load_features_from_files(mat_filepaths, header_filepaths)
 
     return features, labels
 
