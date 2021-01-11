@@ -4,3 +4,4 @@ scikit_learn==0.24.0
 scipy==1.6.0
 tensorflow==2.4.0
 tqdm==4.55.2
+tabnet==0.1.6
