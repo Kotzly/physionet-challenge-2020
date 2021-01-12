@@ -5,6 +5,9 @@ from scipy.signal import butter, lfilter
 from scipy import stats
 import re
 import os
+from scipy import signal
+from PIL import Image
+import tensorflow as tf
 
 def detect_peaks(ecg_measurements, signal_frequency, gain):
 
@@ -271,3 +274,34 @@ def baseline_features(data, metadata):
     features = np.hstack(features)
 
     return features
+
+
+def spectogram_feature(x, metadata, size=224):
+# def spectogram_feature(x, metadata, fs=1000, nperseg=500, noverlap=480):
+    fs = metadata["sr"]
+    x = x[:3, :]
+    nperseg = int((size * 2) * fs / 500) - 1 
+    noverlap = nperseg - 20
+    spec = signal.spectrogram(
+        x,
+        fs=fs,
+        nperseg=nperseg,
+        noverlap=noverlap,
+        nfft=None,
+        axis=-1,
+    )[2]
+#     return spec
+    size = spec.shape[1]
+    ret = spec.shape[2] - size
+    spec = spec[:, :, ret//2:ret//2+size]
+    if spec.shape[2] < size:
+        rest = size - spec.shape[2]
+        spec = np.concatenate([spec, *[spec[:, :, [-1]]] * rest], axis=2)
+    if fs != 500:
+        new = []
+        for i in range(12):
+            new.append(Image.fromarray(spec[i, :, :]).resize((size, size)))
+        spec = np.stack(new, axis=0)
+    spec = spec.transpose(1, 2, 0)
+    image = tf.keras.applications.mobilenet_v2.preprocess_input(spec)
+    return image

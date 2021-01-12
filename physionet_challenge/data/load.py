@@ -2,7 +2,7 @@ import numpy as np
 import os
 from scipy.io import loadmat
 from os.path import join
-from physionet_challenge.processing.features import baseline_features, get_metadata_from_file
+from physionet_challenge.processing.features import baseline_features, get_metadata_from_file, spectogram_feature
 from physionet_challenge.data.split import split_dataset
 from tensorflow.keras.models import load_model
 import multiprocessing as mp
@@ -44,12 +44,19 @@ def load_features_from_file(mat_filepath, header_filepath, processing_fn=None):
     features = processing_fn(recording, metadata)
     return features
 
+
+def load_spectogram_features_from_file(mat_filepath, header_filepath):
+    recording = load_recording_from_file(mat_filepath)
+    metadata = get_metadata_from_file(header_filepath)
+    features = spectogram_feature(recording, metadata)
+    return features
+
 def load_baseline_features_from_file(mat_filepath, header_filepath):
-    # Principal function.
     recording = load_recording_from_file(mat_filepath)
     metadata = get_metadata_from_file(header_filepath)
     features = baseline_features(recording, metadata)
     return features
+
 
 def load_features_from_files(mat_files, header_files, file_processing_fn=None):
     if file_processing_fn is None:
@@ -59,7 +66,7 @@ def load_features_from_files(mat_files, header_files, file_processing_fn=None):
             file_processing_fn,
             zip(mat_files, header_files)
         )
-    features = np.array(features)
+    features = np.stack(features, axis=0)
     return features
 
 
@@ -69,6 +76,7 @@ def load_dataset(dataset_directory, classes=None, subjects=None, processing="bas
 
     PROCESSING_FN_DICT = {
         "baseline": load_baseline_features_from_file,
+        "transfer": load_spectogram_features_from_file
     }
 
     if classes is None:

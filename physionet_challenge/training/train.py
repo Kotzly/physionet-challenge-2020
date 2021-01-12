@@ -20,10 +20,14 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow as tf
 
-from physionet_challenge.model.tabnet import TabNetModel
 from physionet_challenge.data.load import get_split_subjects, load_dataset
 from physionet_challenge.data.save import save_dataset
+
 from physionet_challenge.model.baseline import BaselineMultibranch
+from physionet_challenge.model.tabnet import TabNetModel
+from physionet_challenge.model.transfer_model import TransferModel
+
+
 import warnings
 from physionet_challenge.utils.data import CLASSES
 
@@ -31,7 +35,7 @@ warnings.simplefilter("ignore")
 
 N_JOBS = os.cpu_count()
 
-def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoint_folder=None, model="mlp", seed=1, monitor="val_loss"):
+def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoint_folder=None, model="mlp", processing="baseline", seed=1, monitor="val_loss"):
 
     classes = CLASSES
     train_subjects = get_split_subjects(split_filepath, split="train", dataset_directory=input_dir)
@@ -47,8 +51,8 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
             y_val = np.load(checkpoint_folder / "y_val.npy")
         else:
             print("No checkpoint. Loading data")
-            x_train, y_train = load_dataset(input_dir, classes, subjects=train_subjects)
-            x_val, y_val = load_dataset(input_dir, classes, subjects=val_subjects)
+            x_train, y_train = load_dataset(input_dir, classes, subjects=train_subjects, processing=processing)
+            x_val, y_val = load_dataset(input_dir, classes, subjects=val_subjects, processing=processing)
 
             checkpoint_folder.mkdir(parents=True, exist_ok=True)
             save_dataset(x_train, y_train, checkpoint_folder, split="train")
@@ -63,11 +67,11 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
     imputer = SimpleImputer()
     scaler = RobustScaler()
 
-    x_train = imputer.fit_transform(x_train)
-    x_val = imputer.transform(x_val)
-
-    x_train = scaler.fit_transform(x_train)
-    x_val = scaler.transform(x_val)
+    if model != "transfer":
+        x_train = imputer.fit_transform(x_train)
+        x_val = imputer.transform(x_val)
+        x_train = scaler.fit_transform(x_train)
+        x_val = scaler.transform(x_val)
     
     # Train the classifier
     K.clear_session()
@@ -76,7 +80,8 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
 
     model_class = {
         "tabnet": TabNetModel,
-        "mlp": BaselineMultibranch
+        "mlp": BaselineMultibranch,
+        "transfer": TransferModel
     }[model]
     model = model_class(
         n_inputs=x_train.shape[1],

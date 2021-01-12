@@ -1,6 +1,6 @@
 import os
 from scipy.io import loadmat
-from physionet_challenge.data.load import load_artifacts, load_data_and_header, load_features_from_files
+from physionet_challenge.data.load import load_artifacts, load_data_and_header, load_baseline_features_from_file, load_spectogram_features_from_file
 from physionet_challenge.model.inference import run_classifier_for_subject
 import tqdm
 from os.path import join
@@ -10,7 +10,7 @@ from physionet_challenge.data.save import save_challenge_predictions
 import argparse
 
 
-def main(model_dir, input_dir, output_dir, split_filepath, split):
+def main(model_dir, input_dir, output_dir, split_filepath, split, processing="baseline"):
 
     if split is not None:
         split_dict = load_split_json(split_filepath)
@@ -56,9 +56,15 @@ def main(model_dir, input_dir, output_dir, split_filepath, split):
     classes = artifacts['classes']
     scaler = artifacts['scaler']
 
-    features = load_features_from_files(mat_filepaths, header_filepaths)
-    feats_reshape = imputer.transform(features)
-    feats_reshape = scaler.transform(feats_reshape)
+    loading_fn = {
+        "baseline": load_baseline_features_from_file,
+        "transfer": load_spectogram_features_from_file
+    }[processing]
+
+    features = loading_fn(mat_filepaths, header_filepaths)
+    if processing != "transfer":
+        feats_reshape = imputer.transform(features)
+        feats_reshape = scaler.transform(feats_reshape)
     current_score = model.predict(feats_reshape)
     current_label = (current_score > .5).astype(int)
 
@@ -104,7 +110,7 @@ if __name__ == '__main__':
         default=None
     )
     parser.add_argument("--split", help="Split name.", default="train")
-    
+    parser.add_argument("--processing", help="Processing function.", default="baseline")    
     args = parser.parse_args()
 
     model_dir = args.model_dir
@@ -116,5 +122,6 @@ if __name__ == '__main__':
         input_directory,
         output_directory,
         args.split_filepath,
-        args.split
+        args.split,
+        processing=args.processing
     )
