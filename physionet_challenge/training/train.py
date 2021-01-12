@@ -23,10 +23,12 @@ import tensorflow as tf
 from physionet_challenge.model.tabnet import TabNetModel
 from physionet_challenge.data.load import get_split_subjects, load_dataset
 from physionet_challenge.data.save import save_dataset
-from physionet_challenge.model.baseline import BaselineMultibranch
+from physionet_challenge.model.baseline import BaselineMultibranch, BaselineMultibranchFocal
+
 import warnings
 from physionet_challenge.utils.data import CLASSES
 
+import matplotlib.pyplot as plt
 warnings.simplefilter("ignore")
 
 N_JOBS = os.cpu_count()
@@ -76,7 +78,9 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
 
     model_class = {
         "tabnet": TabNetModel,
-        "mlp": BaselineMultibranch
+        "multi": BaselineMultibranch,
+        "multi_focal": BaselineMultibranchFocal,
+        
     }[model]
     model = model_class(
         n_inputs=x_train.shape[1],
@@ -117,12 +121,19 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
     }
     filepath = os.path.join(output_dir, 'artifacts.joblib')
     joblib.dump(artifacts, filepath, protocol=0)    
-    joblib.dump(history.history, os.path.join(output_dir, 'history.joblib'))
+    joblib.dump(history.history, os.path.join(output_dir, 'history_{model}.joblib'))
     model.save(
         os.path.join(output_dir, "model"),
         include_optimizer=False
     )
 
+    x = range(len(history.history["val_loss"]))
+    plt.figure(figsize=(12, 6))
+    plt.plot(x, history.history["loss"], label="Train Loss")
+    plt.plot(x, history.history["val_loss"], label="Validation Loss")
+    plt.legend()
+    model_name = Path(output_dir).name
+    plt.savefig(f"plot_{model}_{model_name}.png")
     # model_filename = os.path.join(output_directory, 'model.sav')
     # joblib.dump({'model': model}, model_filename, protocol=0)
     
