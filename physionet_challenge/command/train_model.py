@@ -61,5 +61,5 @@ if __name__ == '__main__':
         model=args.model,
         seed=args.seed,
         monitor=args.monitor,
-        batch_size=batch_size
+        batch_size=args.batch_size
     )
