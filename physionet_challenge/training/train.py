@@ -99,7 +99,7 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
         callbacks=callbacks,
         validation_data=(x_val, y_val),
         epochs=1000,
-        batch_size=32,
+        batch_size=64,
         workers=N_JOBS,
         use_multiprocessing=N_JOBS>1
     )
