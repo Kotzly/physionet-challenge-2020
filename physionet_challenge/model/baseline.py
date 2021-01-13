@@ -40,6 +40,30 @@ def BaselineMultibranch(n_inputs=146, n_classes=111):
 
     return neural_model
 
+def BaselineMultibranchBig(n_inputs=146, n_classes=111):
+    inp = Input((n_inputs,))
+    dropout = Dropout(.2)
+    dense_1 = Dense(64, activation="relu", kernel_regularizer=l2(1e-4))
+    dense_2 = Dense(32, activation="relu", kernel_regularizer=l2(1e-4))
+    dense_1_output = dense_1(dropout(inp))
+    dense_2_output = dense_2(dense_1_output)
+
+    branches = []
+    for i in range(n_classes):
+        branch_1 = Dense(16, activation="relu")
+        branch_2 = Dense(8, activation="relu")
+        branch_3 = Dense(1, activation="sigmoid")
+        branches.append(branch_3(branch_2(branch_1(dense_2_output))))
+    output = Concatenate()(branches)
+
+    neural_model = Model(inputs=inp, outputs=output)
+    neural_model.compile(
+        optimizer=Adam(lr=1e-4),
+        loss="categorical_crossentropy",
+        metrics=["accuracy"]
+    )
+
+    return neural_model
 
 def BaselineMultibranchFocal(n_inputs=146, n_classes=111):
     inp = Input((n_inputs,))

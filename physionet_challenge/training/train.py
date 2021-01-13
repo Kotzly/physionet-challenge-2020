@@ -23,7 +23,7 @@ import tensorflow as tf
 from physionet_challenge.model.tabnet import TabNetModel
 from physionet_challenge.data.load import get_split_subjects, load_dataset
 from physionet_challenge.data.save import save_dataset
-from physionet_challenge.model.baseline import BaselineMultibranch, BaselineMultibranchFocal
+from physionet_challenge.model.baseline import BaselineMultibranch, BaselineMultibranchFocal, BaselineMultibranchBig
 
 import warnings
 from physionet_challenge.utils.data import CLASSES
@@ -80,7 +80,7 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
         "tabnet": TabNetModel,
         "multi": BaselineMultibranch,
         "multi_focal": BaselineMultibranchFocal,
-        
+        "multi_big": BaselineMultibranchBig
     }[model]
     model = model_class(
         n_inputs=x_train.shape[1],
