@@ -133,7 +133,7 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
     plt.plot(x, history.history["val_loss"], label="Validation Loss")
     plt.legend()
     model_name = Path(output_dir).name
-    plt.savefig(f"plot_{model}_{model_name}.png")
+    plt.savefig(f"plot_{model_name}.png")
     # model_filename = os.path.join(output_directory, 'model.sav')
     # joblib.dump({'model': model}, model_filename, protocol=0)
     
