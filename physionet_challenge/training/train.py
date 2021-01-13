@@ -33,7 +33,7 @@ warnings.simplefilter("ignore")
 
 N_JOBS = os.cpu_count()
 
-def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoint_folder=None, model="mlp", seed=1, monitor="val_loss"):
+def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoint_folder=None, model="mlp", seed=1, monitor="val_loss", batch_size=16):
 
     classes = CLASSES
     train_subjects = get_split_subjects(split_filepath, split="train", dataset_directory=input_dir)
@@ -99,7 +99,7 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
         callbacks=callbacks,
         validation_data=(x_val, y_val),
         epochs=1000,
-        batch_size=16,
+        batch_size=batch_size,
         workers=N_JOBS,
         use_multiprocessing=N_JOBS>1
     )
