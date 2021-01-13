@@ -34,7 +34,7 @@ def BaselineMultibranch(n_inputs=146, n_classes=111):
     neural_model = Model(inputs=inp, outputs=output)
     neural_model.compile(
         optimizer=Adam(lr=1e-4),
-        loss="categorical_crossentroyp",
+        loss="categorical_crossentropy",
         metrics=["accuracy"]
     )
 
