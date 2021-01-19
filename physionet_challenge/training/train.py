@@ -23,15 +23,17 @@ import tensorflow as tf
 from physionet_challenge.model.tabnet import TabNetModel
 from physionet_challenge.data.load import get_split_subjects, load_dataset
 from physionet_challenge.data.save import save_dataset
-from physionet_challenge.model.baseline import BaselineMultibranch
+from physionet_challenge.model.baseline import BaselineMultibranch, BaselineMultibranchFocal, BaselineMultibranchBig
+
 import warnings
 from physionet_challenge.utils.data import CLASSES
 
+import matplotlib.pyplot as plt
 warnings.simplefilter("ignore")
 
 N_JOBS = os.cpu_count()
 
-def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoint_folder=None, model="mlp", seed=1, monitor="val_loss"):
+def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoint_folder=None, model="mlp", seed=1, monitor="val_loss", batch_size=16):
 
     classes = CLASSES
     train_subjects = get_split_subjects(split_filepath, split="train", dataset_directory=input_dir)
@@ -76,7 +78,9 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
 
     model_class = {
         "tabnet": TabNetModel,
-        "mlp": BaselineMultibranch
+        "multi": BaselineMultibranch,
+        "multi_focal": BaselineMultibranchFocal,
+        "multi_big": BaselineMultibranchBig
     }[model]
     model = model_class(
         n_inputs=x_train.shape[1],
@@ -95,7 +99,7 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
         callbacks=callbacks,
         validation_data=(x_val, y_val),
         epochs=1000,
-        batch_size=32,
+        batch_size=batch_size,
         workers=N_JOBS,
         use_multiprocessing=N_JOBS>1
     )
@@ -117,12 +121,19 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
     }
     filepath = os.path.join(output_dir, 'artifacts.joblib')
     joblib.dump(artifacts, filepath, protocol=0)    
-    joblib.dump(history.history, os.path.join(output_dir, 'history.joblib'))
+    joblib.dump(history.history, os.path.join(output_dir, 'history_{model}.joblib'))
     model.save(
         os.path.join(output_dir, "model"),
         include_optimizer=False
     )
 
+    x = range(len(history.history["val_loss"]))
+    plt.figure(figsize=(12, 6))
+    plt.plot(x, history.history["loss"], label="Train Loss")
+    plt.plot(x, history.history["val_loss"], label="Validation Loss")
+    plt.legend()
+    model_name = Path(output_dir).name
+    plt.savefig(f"plot_{model_name}.png")
     # model_filename = os.path.join(output_directory, 'model.sav')
     # joblib.dump({'model': model}, model_filename, protocol=0)
     

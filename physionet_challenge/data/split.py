@@ -11,7 +11,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 FOLDS_NAMES = ["train", "test", "validation"]
-PROPORTIONS = (.55, .2, .25)
+PROPORTIONS = (.60, .2, .2)
 
 N_JOBS = os.cpu_count()
 
@@ -128,13 +128,14 @@ def main(input_folder, split_filepath, classes_filepath, proportions, folds_name
         classes_filepath,
         proportions=proportions,
         folds_names=names,
-        seed=1
+        seed=seed
     )
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_folder", help="Input directory.")
     parser.add_argument("--split_filepath", help="Filepath to save split json.")
-    parser.add_argument("--classes_filepath", help="Filepath to save classes.")
+    parser.add_argument("--classes_filepath", help="Filepath to save classes.", default=None)
     parser.add_argument("--proportions", help="Proportions, separated by comma.", default=None)
     parser.add_argument("--names", help="Name of folds.", default=None)
     parser.add_argument("--seed", help="Seed.", default=1)
@@ -156,5 +157,5 @@ if __name__ == "__main__":
         args.classes_filepath,
         proportions=proportions,
         folds_names=names,
-        seed=1
+        seed=args.seed
     )
