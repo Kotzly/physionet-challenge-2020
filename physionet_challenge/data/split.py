@@ -13,10 +13,10 @@ logging.basicConfig(level=logging.INFO)
 FOLDS_NAMES = ["train", "test", "validation"]
 PROPORTIONS = (.60, .2, .2)
 DATASETS_FILESTART = {
-    "CPSC2018": ["A", "E"],
+    "CPSC2018": ["A", "Q"],
     "INCART": ["I"],
     "PTB": ["S", "H"],
-    "G12EC": ["Q"],
+    "G12EC": ["E"],
 }
 
 N_JOBS = os.cpu_count()
