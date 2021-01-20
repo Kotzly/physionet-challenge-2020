@@ -12,6 +12,12 @@ logging.basicConfig(level=logging.INFO)
 
 FOLDS_NAMES = ["train", "test", "validation"]
 PROPORTIONS = (.60, .2, .2)
+DATASETS_FILESTART = {
+    "CPSC2018": ["A", "Q"],
+    "INCART": ["I"],
+    "PTB": ["S", "H"],
+    "G12EC": ["E"],
+}
 
 N_JOBS = os.cpu_count()
 
@@ -39,6 +45,25 @@ def train_test_split(arr, test_size=.2, random_state=1):
     x1 = arr[idx[:N_split]]
     x2 = arr[idx[N_split:]]
     return x1, x2
+
+def split_dataset_from_set_split(split_filepath, output_filepath="./dataset_split.json", split="test"):
+
+    with open(split_filepath, "r") as file:
+        splits = json.load(file)
+    
+    dataset_split = {}
+    for dataset in DATASETS_FILESTART:
+        subjects = [
+            sub for sub in splits[split]
+            if any([sub.startswith(start_token) for start_token in DATASETS_FILESTART[dataset]])
+        ]
+        dataset_split[dataset] = subjects
+    
+    with open(output_filepath, "w") as file:
+        json.dump(dataset_split, file)
+
+    datasets = list(dataset_split.keys())
+    print("Created {} file {} subjects with splits: {}".format(output_filepath, split, datasets))    
 
 def split_dataset(
     input_folder,
@@ -108,6 +133,9 @@ def split_dataset(
             # Save splits
         with open(split_filepath, "w") as file:
             json.dump(splits, file, indent=4)
+    
+        stats = {k:len(v) for k, v in splits.items()}
+        print("Splits created. Subjects per split:", stats)
 
         with open(Path(split_filepath).parent / "found_classes.json", "w") as file:
             json.dump(all_diagnoses, file, indent=4)
@@ -117,7 +145,6 @@ def split_dataset(
         np.save(classes_filepath, classes)
 
     logging.info("Done.")
-
     return splits, classes
 
 
@@ -130,11 +157,17 @@ def main(input_folder, split_filepath, classes_filepath, proportions, folds_name
         folds_names=names,
         seed=seed
     )
+    for split in FOLDS_NAMES:
+        split_dataset_from_set_split(
+            split_filepath,
+            output_filepath=f"dataset_split_{split}.json",
+            split=split
+        )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input_folder", help="Input directory.")
-    parser.add_argument("--split_filepath", help="Filepath to save split json.")
+    parser.add_argument("--split_filepath", help="Filepath to save split json.", default="./split.json")
     parser.add_argument("--classes_filepath", help="Filepath to save classes.", default=None)
     parser.add_argument("--proportions", help="Proportions, separated by comma.", default=None)
     parser.add_argument("--names", help="Name of folds.", default=None)
