@@ -2,7 +2,7 @@ import numpy as np
 import os
 from scipy.io import loadmat
 from os.path import join
-from physionet_challenge.processing.features import baseline_features, get_metadata_from_file
+from physionet_challenge.processing.features import baseline_features, get_metadata_from_file, other_features
 from physionet_challenge.data.split import split_dataset
 from tensorflow.keras.models import load_model
 import multiprocessing as mp
@@ -51,9 +51,16 @@ def load_baseline_features_from_file(mat_filepath, header_filepath):
     features = baseline_features(recording, metadata)
     return features
 
-def load_features_from_files(mat_files, header_files, file_processing_fn=None):
-    if file_processing_fn is None:
-        file_processing_fn = load_baseline_features_from_file
+def load_other_features_from_file(mat_filepath, header_filepath):
+    # Principal function.
+    recording = load_recording_from_file(mat_filepath)
+    metadata = get_metadata_from_file(header_filepath)
+    features = other_features(recording, metadata)
+    return features
+
+def load_features_from_files(mat_files, header_files, processing="baseline"):
+    file_processing_fn = PROCESSING_FN_DICT[processing]
+
     with mp.Pool(N_JOBS) as pool:
         features = pool.starmap(
             file_processing_fn,
@@ -65,18 +72,10 @@ def load_features_from_files(mat_files, header_files, file_processing_fn=None):
 
 def load_dataset(dataset_directory, classes=None, subjects=None, processing="baseline"):
     if subjects is None:
-        subjects = [os.path.splitext(filepath.name) for filepath in Path(dataset_directory).glob(".hea")]
-
-    PROCESSING_FN_DICT = {
-        "baseline": load_baseline_features_from_file,
-    }
+        subjects = [os.path.splitext(filepath.name)[0] for filepath in Path(dataset_directory).glob(".hea")]
 
     if classes is None:
-        classes = load_all_classes(dataset_directory)
-
-    if isinstance(processing, str) or processing is None:
-        processing = PROCESSING_FN_DICT[processing]
-    
+        classes = load_all_classes(dataset_directory)    
 
     header_filepaths = [Path(dataset_directory) / (subject + ".hea") for subject in subjects]
     mat_filepaths = [Path(dataset_directory) / (subject + ".mat") for subject in subjects]
@@ -89,7 +88,7 @@ def load_dataset(dataset_directory, classes=None, subjects=None, processing="bas
     labels = get_labels(header_filepaths, classes)
 
     print("\tLoading features")
-    features = load_features_from_files(mat_filepaths, header_filepaths, file_processing_fn=processing)
+    features = load_features_from_files(mat_filepaths, header_filepaths, processing=processing)
 
     return features, labels
 
@@ -163,3 +162,7 @@ def load_all_classes(dataset_directory):
     classes, _ = split_dataset(dataset_directory)
     return classes
 
+PROCESSING_FN_DICT = {
+    "baseline": load_baseline_features_from_file,
+    "other": load_other_features_from_file
+}

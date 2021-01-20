@@ -33,7 +33,7 @@ warnings.simplefilter("ignore")
 
 N_JOBS = os.cpu_count()
 
-def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoint_folder=None, model="mlp", seed=1, monitor="val_loss", batch_size=16):
+def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoint_folder=None, model="mlp", seed=1, monitor="val_loss", batch_size=16, processing="baseline"):
 
     classes = CLASSES
     train_subjects = get_split_subjects(split_filepath, split="train", dataset_directory=input_dir)
@@ -49,18 +49,19 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
             y_val = np.load(checkpoint_folder / "y_val.npy")
         else:
             print("No checkpoint. Loading data")
-            x_train, y_train = load_dataset(input_dir, classes, subjects=train_subjects)
-            x_val, y_val = load_dataset(input_dir, classes, subjects=val_subjects)
+            x_train, y_train = load_dataset(input_dir, classes, subjects=train_subjects, processing=processing)
+            x_val, y_val = load_dataset(input_dir, classes, subjects=val_subjects, processing=processing)
 
             checkpoint_folder.mkdir(parents=True, exist_ok=True)
             save_dataset(x_train, y_train, checkpoint_folder, split="train")
             save_dataset(x_val, y_val, checkpoint_folder, split="val")
     else:
-        x_train, y_train = load_dataset(input_dir, classes, subjects=train_subjects)
-        x_val, y_val = load_dataset(input_dir, classes, subjects=val_subjects)
+        x_train, y_train = load_dataset(input_dir, classes, subjects=train_subjects, processing=processing)
+        x_val, y_val = load_dataset(input_dir, classes, subjects=val_subjects, processing=processing)
     
     # Train model.
     print('Training model...')
+    print(f"{x_train.shape[1]} features")
     # Replace NaN values with mean values
     imputer = SimpleImputer()
     scaler = RobustScaler()

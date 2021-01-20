@@ -4,7 +4,7 @@ import os
 from physionet_challenge.training.train import train
 import argparse
 
-def main(input_dir, output_dir, checkpoint_folder, split_filepath, model, seed, monitor, batch_size):
+def main(input_dir, output_dir, checkpoint_folder, split_filepath, model, seed, monitor, batch_size, processing):
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
@@ -18,7 +18,8 @@ def main(input_dir, output_dir, checkpoint_folder, split_filepath, model, seed, 
         model=model,
         seed=seed,
         monitor=monitor,
-        batch_size=batch_size
+        batch_size=batch_size,
+        processing=processing
     )
 
     print('Done.')
@@ -50,6 +51,7 @@ if __name__ == '__main__':
     parser.add_argument("--model", help="Model type.", default="mlp", type=str)
     parser.add_argument("--monitor", help="Monitor variable for training.", default="val_loss", type=str)
     parser.add_argument("--batch_size", help="Batch size for training.", default=64, type=int)
+    parser.add_argument("--processing", help="Processing: 'baseline' or 'other'.", default="baseline", type=str)
     
     args = parser.parse_args()
 
@@ -61,5 +63,6 @@ if __name__ == '__main__':
         model=args.model,
         seed=args.seed,
         monitor=args.monitor,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
+        processing=args.processing
     )

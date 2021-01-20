@@ -10,11 +10,10 @@ from physionet_challenge.data.save import save_challenge_predictions
 import argparse
 
 
-def main(model_dir, input_dir, output_dir, split_filepath, split):
+def main(model_dir, input_dir, output_dir, split_filepath, split, processing="baseline"):
 
-    if split is not None:
-        split_dict = load_split_json(split_filepath)
-        split_subjects = split_dict[split]
+    split_dict = load_split_json(split_filepath)
+    split_subjects = split_dict[split]
 
     # Find files.
     _input_files = Path(input_directory).glob("*.mat")
@@ -56,7 +55,7 @@ def main(model_dir, input_dir, output_dir, split_filepath, split):
     classes = artifacts['classes']
     scaler = artifacts['scaler']
 
-    features = load_features_from_files(mat_filepaths, header_filepaths)
+    features = load_features_from_files(mat_filepaths, header_filepaths, processing=processing)
     feats_reshape = imputer.transform(features)
     feats_reshape = scaler.transform(feats_reshape)
     current_score = model.predict(feats_reshape)
@@ -104,6 +103,7 @@ if __name__ == '__main__':
         default=None
     )
     parser.add_argument("--split", help="Split name.", default="train")
+    parser.add_argument("--processing", help="Processing: 'baseline' or 'other'", default="baseline")
     
     args = parser.parse_args()
 
@@ -116,5 +116,6 @@ if __name__ == '__main__':
         input_directory,
         output_directory,
         args.split_filepath,
-        args.split
+        args.split,
+        processing=args.processing
     )

@@ -271,3 +271,54 @@ def baseline_features(data, metadata):
     features = np.hstack(features)
 
     return features
+
+def other_features(data, metadata):
+
+    assert len(data) == metadata["n_leads"] == 12
+    sr = metadata["sr"]
+    features = [metadata["age"], metadata["sex"]]
+
+    for i in range(len(data)):
+        gain = metadata["leads_gains"][i]
+
+        peaks, idx = detect_peaks(data[i], sr, gain)
+
+    #   standard deviation
+        std_RR = np.std(idx / sr * 1000)
+        std_Peaks = np.std(peaks * gain)
+
+    #   Skewness
+        skew_RR = stats.skew(idx / sr * 1000)
+        skew_Peaks = stats.skew(peaks * gain)
+
+    #   Kurtosis
+        kurt_RR = stats.kurtosis(idx / sr * 1000)
+        kurt_Peaks = stats.kurtosis(peaks * gain)
+
+    #   Percentiles
+        q = [0, .25, .5, .75, 1]
+        percentiles_RR = [np.nan] * len(q)
+        percentiles_Peaks = [np.nan] * len(q)
+        
+        if len(idx) > 0:
+            percentiles_RR = np.percentile(idx / sr * 1000, q=q)
+    
+        if len(peaks) > 0:
+            percentiles_Peaks = np.percentile(peaks * gain, q=q)
+
+        features.extend(
+            [
+                std_RR,
+                std_Peaks,
+                skew_RR,
+                skew_Peaks,
+                kurt_RR,
+                kurt_Peaks,
+                *percentiles_RR,
+                *percentiles_Peaks
+            ]
+        )
+
+    features = np.hstack(features)
+
+    return features
