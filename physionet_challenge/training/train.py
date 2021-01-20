@@ -94,12 +94,15 @@ def train(input_dir, output_dir, classes=CLASSES, split_filepath=None, checkpoin
         min_delta=1e-3,
         restore_best_weights=True
     )
+    w_ = (1 - y_train.mean(axis=0)).reshape(-1, 1)
+    w = np.matmul(y_train, w_ / w_.max())
     history = model.fit(
         x_train, 
         y_train,
         callbacks=callbacks,
         validation_data=(x_val, y_val),
         epochs=1000,
+        sample_weight=w,
         batch_size=batch_size,
         workers=N_JOBS,
         use_multiprocessing=N_JOBS>1
